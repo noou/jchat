@@ -5,17 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анонимный чат</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect x='1' y='1' width='6' height='1' fill='black'/><rect x='1' y='2' width='1' height='3' fill='black'/><rect x='6' y='2' width='1' height='3' fill='black'/><rect x='2' y='5' width='4' height='1' fill='black'/><rect x='3' y='6' width='1' height='1' fill='black'/><rect x='4' y='6' width='1' height='1' fill='black'/><rect x='2' y='3' width='1' height='1' fill='black'/><rect x='3.5' y='3' width='1' height='1' fill='black'/><rect x='5' y='3' width='1' height='1' fill='black'/></svg>">
 </head>
 <body>
+<button class="theme-toggle" id="theme-toggle" title="Переключить тему"><span class="toggle-thumb"></span></button>
 <div id="main-screen" class="screen">
     <div class="center-box">
         <div class="logo">картинка логотип</div>
+        <div class="logo-svg" style="margin-bottom: 30px;">
+        <svg width="48" height="48" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+          <rect x="1" y="1" width="6" height="1" fill="black"/>
+          <rect x="1" y="2" width="1" height="3" fill="black"/>
+          <rect x="6" y="2" width="1" height="3" fill="black"/>
+          <rect x="2" y="5" width="4" height="1" fill="black"/>
+          <rect x="3" y="6" width="1" height="1" fill="black"/>
+          <rect x="4" y="6" width="1" height="1" fill="black"/>
+          <rect x="2" y="3" width="1" height="1" fill="black"/>
+          <rect x="3.5" y="3" width="1" height="1" fill="black"/>
+          <rect x="5" y="3" width="1" height="1" fill="black"/>
+        </svg>
+        </div>
         <button id="start-btn">начать чат</button>
     </div>
     <div class="online" id="online-main">онлайн: ...</div>
 </div>
 <div id="chat-screen" class="screen" style="display:none;">
-    <div class="theme-switcher" id="theme-switcher">🌙</div>
     <div class="chat-box">
         <button class="close-btn" id="close-btn" title="Завершить чат">✕</button>
         <div class="messages" id="messages"></div>

@@ -92,6 +92,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     chat_id = "-".join(sorted([session_id, partner_id]))
                     log_chat_message(chat_id, session_id, data["text"][:500], websocket.client.host)
                     await active_chats[partner_id].send_json({"type": "message", "from": "stranger", "text": data["text"][:500]})
+            elif data["type"] == "typing":
+                partner_id = session_pairs.get(session_id)
+                if partner_id and partner_id in active_chats:
+                    await active_chats[partner_id].send_json({"type": "typing"})
             elif data["type"] == "leave":
                 await handle_leave(session_id)
                 break

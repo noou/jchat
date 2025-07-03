@@ -2,6 +2,7 @@ let sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
 localStorage.setItem('sessionId', sessionId);
 let ws = null;
 let partnerId = null;
+let typingTimeout = null;
 
 const mainScreen = document.getElementById('main-screen');
 const chatScreen = document.getElementById('chat-screen');
@@ -28,6 +29,7 @@ function showMain() {
     partnerId = null;
     setSendEnabled(false);
     registerSession();
+    setThemeToggleHandler();
 }
 function showChat() {
     mainScreen.style.display = 'none';
@@ -36,12 +38,15 @@ function showChat() {
     messagesDiv.innerHTML = '';
     setSendEnabled(false);
     setCloseBtnHandler();
-    setThemeSwitcherHandler();
 }
-function addMsg(text, from) {
+function formatTime(date) {
+    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+}
+function addMsg(text, from, time) {
     const div = document.createElement('div');
     div.className = from;
-    div.textContent = (from === 'me' ? 'Вы: ' : 'Собеседник: ') + text;
+    const msgTime = time || formatTime(new Date());
+    div.innerHTML = `<span class="msg-text">${text}</span><span class="msg-time">${msgTime}</span>`;
     messagesDiv.appendChild(div);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
@@ -58,6 +63,21 @@ function showLoaderWithText(text) {
 function hideLoader() {
     const loader = messagesDiv.querySelector('.loader');
     if (loader) loader.remove();
+}
+function showTypingIndicator() {
+    let indicator = document.getElementById('typing-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'typing-indicator';
+        indicator.className = 'typing-indicator';
+        indicator.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+        messagesDiv.appendChild(indicator);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+}
+function hideTypingIndicator() {
+    const indicator = document.getElementById('typing-indicator');
+    if (indicator) indicator.remove();
 }
 function connectWS() {
     ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
@@ -76,16 +96,23 @@ function connectWS() {
             showLoaderWithText('Ожидание собеседника...');
             setSendEnabled(false);
         } else if (data.type === 'message') {
-            addMsg(data.text, data.from === 'stranger' ? 'stranger' : 'me');
+            addMsg(data.text, data.from === 'stranger' ? 'stranger' : 'me', formatTime(new Date()));
+            hideTypingIndicator();
         } else if (data.type === 'left') {
             addSysMsg('Собеседник покинул чат.');
             setSendEnabled(false);
             showNewPartnerBtn();
+            hideTypingIndicator();
+        } else if (data.type === 'typing') {
+            showTypingIndicator();
+            if (typingTimeout) clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(hideTypingIndicator, 2500);
         }
     };
     ws.onclose = () => {
         addSysMsg('Соединение потеряно.');
         setSendEnabled(false);
+        hideTypingIndicator();
     };
 }
 startBtn.onclick = () => {
@@ -95,13 +122,19 @@ startBtn.onclick = () => {
 sendBtn.onclick = () => {
     const text = msgInput.value.trim();
     if (text && ws && ws.readyState === 1) {
+        const now = formatTime(new Date());
         ws.send(JSON.stringify({type: 'message', text}));
-        addMsg(text, 'me');
+        addMsg(text, 'me', now);
         msgInput.value = '';
     }
 };
 msgInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') sendBtn.onclick();
+});
+msgInput.addEventListener('input', () => {
+    if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({type: 'typing'}));
+    }
 });
 leaveBtn.onclick = () => {
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'leave'}));
@@ -141,19 +174,6 @@ function registerSession() {
 }
 registerSession();
 
-// --- Тема ---
-function setThemeSwitcherHandler() {
-    if (!themeSwitcher) return;
-    let isDark = document.body.classList.contains('dark-theme');
-    function setTheme(dark) {
-        isDark = dark;
-        document.body.classList.toggle('dark-theme', dark);
-        themeSwitcher.textContent = dark ? '☀️' : '🌙';
-    }
-    themeSwitcher.onclick = () => setTheme(!isDark);
-}
-// ---
-
 function setCloseBtnHandler() {
     const closeBtn = document.getElementById('close-btn');
     if (closeBtn) {
@@ -163,6 +183,18 @@ function setCloseBtnHandler() {
             showMain();
         };
     }
+}
+
+function setThemeToggleHandler() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (!themeToggle) return;
+    let isDark = document.body.classList.contains('dark-theme');
+    function setTheme(dark) {
+        isDark = dark;
+        document.body.classList.toggle('dark-theme', dark);
+        themeToggle.classList.toggle('active', dark);
+    }
+    themeToggle.onclick = () => setTheme(!isDark);
 }
 
 showMain(); 
