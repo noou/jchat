@@ -31,7 +31,7 @@ online_sessions: set = set()
 
 # --- Для минимизации памяти ---
 last_active = {}
-INACTIVITY_TIMEOUT = timedelta(minutes=1)
+INACTIVITY_TIMEOUT = timedelta(minutes=10)
 
 LOG_PATH = os.path.join(os.path.dirname(__file__), 'logs', 'chat_log.jsonl')
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
@@ -197,19 +197,25 @@ async def handle_leave(session_id):
         pass
 
 async def cleanup_inactive_sessions():
+    """Периодически удаляет неактивные сессии для минимизации памяти."""
     while True:
-        now = datetime.utcnow()
-        inactive = [sid for sid, t in last_active.items() if now - t > INACTIVITY_TIMEOUT]
-        for sid in inactive:
-            print(f"[CLEANUP] Удаляю неактивную сессию {sid}")
-            last_active.pop(sid, None)
-            online_sessions.discard(sid)
-            active_chats.pop(sid, None)
-            partner_id = session_pairs.pop(sid, None)
-            if partner_id:
-                session_pairs.pop(partner_id, None)
+        try:
+            now = datetime.utcnow()
+            inactive = [sid for sid, t in last_active.items() if now - t > INACTIVITY_TIMEOUT]
+            for sid in inactive:
+                print(f"[CLEANUP] Удаляю неактивную сессию {sid}")
+                last_active.pop(sid, None)
+                online_sessions.discard(sid)
+                active_chats.pop(sid, None)
+                partner_id = session_pairs.pop(sid, None)
+                if partner_id:
+                    session_pairs.pop(partner_id, None)
+            print(f"[CLEANUP] online_sessions: {len(online_sessions)}, active_chats: {len(active_chats)}, session_pairs: {len(session_pairs)}")
+        except Exception as e:
+            print(f"[CLEANUP ERROR] {e}")
         await asyncio.sleep(300)  # Проверять каждые 5 минут
 
 @app.on_event("startup")
 async def startup_event():
+    print("[DEBUG] startup_event вызван")
     asyncio.create_task(cleanup_inactive_sessions()) 

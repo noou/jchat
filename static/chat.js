@@ -65,6 +65,7 @@ const hideLoader = () => {
     const loader = messagesDiv.querySelector('.loader');
     if (loader) loader.remove();
 };
+
 const showTypingIndicator = () => {
     let indicator = document.getElementById('typing-indicator');
     if (!indicator) {
@@ -225,8 +226,9 @@ if (closeBtn) {
 
 // --- Тема (тёмная/светлая) с автосохранением ---
 function setTheme(dark) {
-    document.body.classList.toggle('dark', dark);
+    document.body.classList.toggle('dark-theme', dark);
     localStorage.setItem('theme', dark ? 'dark' : 'light');
+    themeToggle.classList.toggle('active', dark);
 }
 function getSavedTheme() {
     return localStorage.getItem('theme') === 'dark';
@@ -234,7 +236,7 @@ function getSavedTheme() {
 // При загрузке страницы применяем сохранённую тему
 setTheme(getSavedTheme());
 themeToggle.onclick = () => {
-    setTheme(!document.body.classList.contains('dark'));
+    setTheme(!document.body.classList.contains('dark-theme'));
 };
 
 // Добавляем элемент Audio для уведомления
