@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анонимный чат</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="main-screen" class="screen">
+    <div class="center-box">
+        <div class="logo">картинка логотип</div>
+        <button id="start-btn">начать чат</button>
+    </div>
+    <div class="online" id="online-main">онлайн: ...</div>
+</div>
+<div id="chat-screen" class="screen" style="display:none;">
+    <div class="chat-box">
+        <div class="messages" id="messages"></div>
+        <div class="input-row">
+            <input type="text" id="msg-input" maxlength="500" placeholder="Введите сообщение...">
+            <button id="send-btn">отправить сообщение</button>
+        </div>
+        <div class="chat-actions">
+            <button id="leave-btn">завершить чат</button>
+            <button id="new-btn">новый собеседник</button>
+        </div>
+    </div>
+    <div class="online" id="online-chat">онлайн: ...</div>
+</div>
+<script src="/static/chat.js"></script>
+</body>
+</html> 

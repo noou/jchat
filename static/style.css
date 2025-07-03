@@ -1,0 +1,134 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    font-family: sans-serif;
+}
+.screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #888;
+    position: relative;
+}
+.center-box {
+    background: #fff;
+    padding: 40px 30px;
+    border-radius: 8px;
+    min-width: 480px;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+    font-size: 1.3em;
+}
+.logo {
+    margin-bottom: 30px;
+    font-size: 20px;
+    color: #444;
+}
+button {
+    padding: 12px 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: #222;
+    color: #fff;
+    cursor: pointer;
+    margin: 5px;
+}
+button:active {
+    background: #444;
+}
+.online {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #222;
+    font-size: 16px;
+}
+.chat-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 540px;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    box-sizing: border-box;
+    font-size: 1.1em;
+}
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px;
+    background: #fafafa;
+    min-height: 120px;
+    max-height: 250px;
+}
+.messages .me {
+    text-align: right;
+    color: #0a4;
+}
+.messages .stranger {
+    text-align: left;
+    color: #222;
+}
+.messages .sys {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
+.input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+#msg-input {
+    flex: 1;
+    padding: 10px;
+    font-size: 15px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+.chat-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+@media (max-width: 900px) {
+    .center-box, .chat-box {
+        min-width: 95vw;
+        padding: 10px 2vw;
+        font-size: 1em;
+    }
+}
+@media (max-width: 600px) {
+    .center-box, .chat-box {
+        min-width: 99vw;
+        padding: 5px 1vw;
+        font-size: 0.95em;
+    }
+    .messages {
+        max-height: 40vh;
+    }
+    .input-row, .chat-actions {
+        flex-direction: column;
+        gap: 5px;
+    }
+    button, #msg-input {
+        font-size: 1em;
+    }
+    .online {
+        right: 10px;
+        top: 10px;
+        font-size: 14px;
+    }
+} 
