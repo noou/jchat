@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict
 from collections import deque
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+import asyncio
 
 app = FastAPI()
 app.add_middleware(
@@ -25,6 +26,10 @@ waiting_queue = deque()
 active_chats: Dict[str, WebSocket] = {}
 session_pairs: Dict[str, str] = {}  # session_id -> partner_id
 online_sessions: set = set()
+
+# --- Для минимизации памяти ---
+last_active = {}
+INACTIVITY_TIMEOUT = timedelta(minutes=10)
 
 LOG_PATH = os.path.join(os.path.dirname(__file__), 'logs', 'chat_log.jsonl')
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
@@ -63,6 +68,7 @@ async def register(request: Request):
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     await websocket.accept()
     online_sessions.add(session_id)
+    last_active[session_id] = datetime.utcnow()
     try:
         # Если пользователь уже в чате, переподключение
         if session_id in session_pairs:
@@ -94,11 +100,13 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         while True:
             try:
                 data = await websocket.receive_json()
+                last_active[session_id] = datetime.utcnow()
             except Exception as e:
                 print(f"[WS RECEIVE ERROR] {e}")
                 break
             msg_type = data.get("type")
             if msg_type == "message":
+                last_active[session_id] = datetime.utcnow()
                 partner_id = session_pairs.get(session_id)
                 if partner_id and partner_id in active_chats:
                     # Ограничение длины сообщения
@@ -110,6 +118,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     except Exception as e:
                         print(f"[WS SEND ERROR] {e}")
             elif msg_type == "typing":
+                last_active[session_id] = datetime.utcnow()
                 partner_id = session_pairs.get(session_id)
                 if partner_id and partner_id in active_chats:
                     try:
@@ -117,9 +126,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     except Exception as e:
                         print(f"[WS SEND ERROR] {e}")
             elif msg_type == "leave":
+                last_active[session_id] = datetime.utcnow()
                 await handle_leave(session_id)
                 break
             elif msg_type == "new":
+                last_active[session_id] = datetime.utcnow()
                 await handle_leave(session_id)
                 # Новый поиск собеседника
                 partner_id = None
@@ -162,4 +173,22 @@ async def handle_leave(session_id):
     try:
         waiting_queue.remove(session_id)
     except ValueError:
-        pass 
+        pass
+
+async def cleanup_inactive_sessions():
+    while True:
+        now = datetime.utcnow()
+        inactive = [sid for sid, t in last_active.items() if now - t > INACTIVITY_TIMEOUT]
+        for sid in inactive:
+            print(f"[CLEANUP] Удаляю неактивную сессию {sid}")
+            last_active.pop(sid, None)
+            online_sessions.discard(sid)
+            active_chats.pop(sid, None)
+            partner_id = session_pairs.pop(sid, None)
+            if partner_id:
+                session_pairs.pop(partner_id, None)
+        await asyncio.sleep(300)  # Проверять каждые 5 минут
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(cleanup_inactive_sessions()) 

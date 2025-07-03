@@ -112,19 +112,24 @@ const connectWS = () => {
             addSysMsg('Собеседник найден!');
             setSendEnabled(true);
             matchAudio.play();
+            stopWaitingTimer();
+            showNotification('Собеседник найден!', 'Вы подключены к чату.');
         } else if (data.type === 'waiting') {
             showLoaderWithText('Ожидание собеседника...');
+            startWaitingTimer();
             setSendEnabled(false);
         } else if (data.type === 'message') {
             addMsg(data.text, data.from === 'stranger' ? 'stranger' : 'me', formatTime(new Date()));
             hideTypingIndicator();
             notifyAudio.play();
+            showNotification('Новое сообщение', data.text);
         } else if (data.type === 'left') {
             addSysMsg('Собеседник покинул чат.');
             setSendEnabled(false);
             showNewPartnerBtn();
             hideTypingIndicator();
             leftAudio.play();
+            stopWaitingTimer();
         } else if (data.type === 'typing') {
             showTypingIndicator();
             if (typingTimeout) clearTimeout(typingTimeout);
@@ -226,5 +231,57 @@ const matchAudio = new Audio('/static/media/match.mp3');
 
 // Добавляем элемент Audio для уведомления о выходе собеседника
 const leftAudio = new Audio('/static/media/left.mp3');
+
+// --- Таймер ожидания ---
+let waitingTimer = null;
+let waitingStart = null;
+let waitingTimerElem = null;
+
+function startWaitingTimer() {
+    // Удаляем старый таймер, если есть
+    stopWaitingTimer();
+    // Добавляем текст ожидания и таймер в messages
+    waitingTimerElem = document.createElement('div');
+    waitingTimerElem.id = 'waiting-timer';
+    waitingTimerElem.style.textAlign = 'center';
+    waitingTimerElem.style.color = '#888';
+    waitingTimerElem.style.marginTop = '10px';
+    waitingTimerElem.innerHTML = 'Ожидание собеседника...<br>Ожидание: <span id="waiting-seconds">0</span> сек.';
+    messagesDiv.innerHTML = '';
+    messagesDiv.appendChild(waitingTimerElem);
+    waitingStart = Date.now();
+    waitingTimer = setInterval(() => {
+        const seconds = Math.floor((Date.now() - waitingStart) / 1000);
+        const secSpan = document.getElementById('waiting-seconds');
+        if (secSpan) secSpan.textContent = seconds;
+    }, 1000);
+}
+
+function stopWaitingTimer() {
+    if (waitingTimer) clearInterval(waitingTimer);
+    waitingTimer = null;
+    if (waitingTimerElem && waitingTimerElem.parentNode) {
+        waitingTimerElem.parentNode.removeChild(waitingTimerElem);
+    }
+    waitingTimerElem = null;
+}
+// --- Конец таймера ожидания ---
+
+// --- Push-уведомления ---
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+function showNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        new Notification(title, { body });
+    }
+}
+// --- Конец push-уведомлений ---
+
+// Запрашиваем разрешение на уведомления при загрузке страницы
+requestNotificationPermission();
 
 showMain(); 
