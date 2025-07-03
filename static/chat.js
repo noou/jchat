@@ -1,8 +1,9 @@
-let sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
+const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
 localStorage.setItem('sessionId', sessionId);
 let ws = null;
 let partnerId = null;
 let typingTimeout = null;
+let typingSentAt = 0;
 
 const mainScreen = document.getElementById('main-screen');
 const chatScreen = document.getElementById('chat-screen');
@@ -14,57 +15,55 @@ const msgInput = document.getElementById('msg-input');
 const messagesDiv = document.getElementById('messages');
 const onlineMain = document.getElementById('online-main');
 const onlineChat = document.getElementById('online-chat');
-const themeSwitcher = document.getElementById('theme-switcher');
+const themeToggle = document.getElementById('theme-toggle');
 
-function setSendEnabled(enabled) {
+const formatTime = date => date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+const clearMessages = () => { messagesDiv.innerHTML = ''; };
+const scrollMessages = () => { messagesDiv.scrollTop = messagesDiv.scrollHeight; };
+
+const setSendEnabled = enabled => {
     sendBtn.disabled = !enabled;
     msgInput.disabled = !enabled;
-}
-
-function showMain() {
+};
+const showMain = () => {
     mainScreen.style.display = '';
     chatScreen.style.display = 'none';
     msgInput.value = '';
-    messagesDiv.innerHTML = '';
+    clearMessages();
     partnerId = null;
     setSendEnabled(false);
     registerSession();
-    setThemeToggleHandler();
-}
-function showChat() {
+};
+const showChat = () => {
     mainScreen.style.display = 'none';
     chatScreen.style.display = '';
     msgInput.value = '';
-    messagesDiv.innerHTML = '';
+    clearMessages();
     setSendEnabled(false);
-    setCloseBtnHandler();
-}
-function formatTime(date) {
-    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-}
-function addMsg(text, from, time) {
+};
+const addMsg = (text, from, time) => {
     const div = document.createElement('div');
     div.className = from;
     const msgTime = time || formatTime(new Date());
     div.innerHTML = `<span class="msg-text">${text}</span><span class="msg-time">${msgTime}</span>`;
     messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-function addSysMsg(text) {
+    scrollMessages();
+};
+const addSysMsg = text => {
     const div = document.createElement('div');
     div.className = 'sys';
     div.textContent = text;
     messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-function showLoaderWithText(text) {
+    scrollMessages();
+};
+const showLoaderWithText = text => {
     messagesDiv.innerHTML = `<div class="sys" style="margin-bottom:18px;">${text}</div><div class="loader"><div class="loader-circle"></div></div>`;
-}
-function hideLoader() {
+};
+const hideLoader = () => {
     const loader = messagesDiv.querySelector('.loader');
     if (loader) loader.remove();
-}
-function showTypingIndicator() {
+};
+const showTypingIndicator = () => {
     let indicator = document.getElementById('typing-indicator');
     if (!indicator) {
         indicator = document.createElement('div');
@@ -72,24 +71,36 @@ function showTypingIndicator() {
         indicator.className = 'typing-indicator';
         indicator.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
         messagesDiv.appendChild(indicator);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        scrollMessages();
     }
-}
-function hideTypingIndicator() {
+};
+const hideTypingIndicator = () => {
     const indicator = document.getElementById('typing-indicator');
     if (indicator) indicator.remove();
-}
-function connectWS() {
+};
+const showNewPartnerBtn = () => {
+    if (!document.getElementById('new-btn')) {
+        const wrap = document.createElement('div');
+        wrap.style.textAlign = 'center';
+        wrap.style.margin = '24px 0';
+        wrap.innerHTML = '<button id="new-btn" class="new-btn">Новый собеседник</button>';
+        messagesDiv.appendChild(wrap);
+        scrollMessages();
+    }
+};
+
+const connectWS = () => {
+    if (ws && ws.readyState === 1) return;
     ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
     ws.onopen = () => {
         showLoaderWithText('Поиск собеседника...');
         setSendEnabled(false);
     };
-    ws.onmessage = (e) => {
+    ws.onmessage = e => {
         const data = JSON.parse(e.data);
         if (data.type === 'matched') {
             partnerId = data.partner;
-            messagesDiv.innerHTML = '';
+            clearMessages();
             addSysMsg('Собеседник найден!');
             setSendEnabled(true);
         } else if (data.type === 'waiting') {
@@ -109,12 +120,17 @@ function connectWS() {
             typingTimeout = setTimeout(hideTypingIndicator, 2500);
         }
     };
+    ws.onerror = err => {
+        addSysMsg('Ошибка соединения. Попробуйте обновить страницу.');
+        setSendEnabled(false);
+    };
     ws.onclose = () => {
         addSysMsg('Соединение потеряно.');
         setSendEnabled(false);
         hideTypingIndicator();
     };
-}
+};
+
 startBtn.onclick = () => {
     showChat();
     connectWS();
@@ -132,8 +148,10 @@ msgInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') sendBtn.onclick();
 });
 msgInput.addEventListener('input', () => {
-    if (ws && ws.readyState === 1) {
+    const now = Date.now();
+    if (ws && ws.readyState === 1 && now - typingSentAt > 700) {
         ws.send(JSON.stringify({type: 'typing'}));
+        typingSentAt = now;
     }
 });
 leaveBtn.onclick = () => {
@@ -141,52 +159,43 @@ leaveBtn.onclick = () => {
     ws.close();
     showMain();
 };
-newBtn.onclick = () => {
-    if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'new'}));
-    messagesDiv.innerHTML = '';
-    addSysMsg('Поиск нового собеседника...');
-    setSendEnabled(false);
-};
-function showNewPartnerBtn() {
-    messagesDiv.innerHTML += '<div style="text-align:center;margin:24px 0;"><button id="new-btn" class="new-btn">Новый собеседник</button></div>';
-    const newBtn = document.getElementById('new-btn');
-    newBtn.onclick = () => {
+messagesDiv.addEventListener('click', e => {
+    if (e.target && e.target.id === 'new-btn') {
         if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'new'}));
-        messagesDiv.innerHTML = '';
+        clearMessages();
         showLoaderWithText('Поиск нового собеседника...');
         setSendEnabled(false);
-    };
-}
-function updateOnline() {
+    }
+});
+
+const updateOnline = () => {
     fetch('/online').then(r=>r.json()).then(d=>{
         onlineMain.textContent = 'онлайн: ' + d.online;
         onlineChat.textContent = 'онлайн: ' + d.online;
     });
-}
+};
 setInterval(updateOnline, 3000);
 updateOnline();
-function registerSession() {
+
+const registerSession = () => {
     fetch('/register', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({session_id: sessionId})
     });
-}
+};
 registerSession();
 
-function setCloseBtnHandler() {
-    const closeBtn = document.getElementById('close-btn');
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'leave'}));
-            ws.close();
-            showMain();
-        };
-    }
+const closeBtn = document.getElementById('close-btn');
+if (closeBtn) {
+    closeBtn.onclick = () => {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'leave'}));
+        ws.close();
+        showMain();
+    };
 }
 
-function setThemeToggleHandler() {
-    const themeToggle = document.getElementById('theme-toggle');
+const setThemeToggleHandler = () => {
     if (!themeToggle) return;
     let isDark = document.body.classList.contains('dark-theme');
     function setTheme(dark) {
@@ -195,6 +204,7 @@ function setThemeToggleHandler() {
         themeToggle.classList.toggle('active', dark);
     }
     themeToggle.onclick = () => setTheme(!isDark);
-}
+};
+setThemeToggleHandler();
 
 showMain(); 

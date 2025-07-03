@@ -3,9 +3,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict, List
+from typing import Dict
 from collections import deque
-import asyncio
 import json
 from datetime import datetime
 import os
@@ -17,7 +16,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-) 
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -30,15 +29,19 @@ online_sessions: set = set()
 LOG_PATH = os.path.join(os.path.dirname(__file__), 'logs', 'chat_log.jsonl')
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
 
+# Надёжное логирование сообщений
 def log_chat_message(chat_id, from_id, text, ip):
-    with open(LOG_PATH, "a", encoding="utf-8") as f:
-        f.write(json.dumps({
-            "chat_id": chat_id,
-            "from": from_id,
-            "text": text,
-            "timestamp": datetime.utcnow().isoformat(),
-            "ip": ip
-        }, ensure_ascii=False) + "\n")
+    try:
+        with open(LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "chat_id": chat_id,
+                "from": from_id,
+                "text": text,
+                "timestamp": datetime.utcnow().isoformat(),
+                "ip": ip
+            }, ensure_ascii=False) + "\n")
+    except Exception as e:
+        print(f"[LOGGING ERROR] {e}")
 
 @app.get("/")
 def root():
@@ -82,24 +85,36 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 waiting_queue.append(session_id)
                 active_chats[session_id] = websocket
                 await websocket.send_json({"type": "waiting"})
-        # Основной цикл
+        # Основной цикл обмена
         while True:
-            data = await websocket.receive_json()
-            if data["type"] == "message":
+            try:
+                data = await websocket.receive_json()
+            except Exception as e:
+                print(f"[WS RECEIVE ERROR] {e}")
+                break
+            msg_type = data.get("type")
+            if msg_type == "message":
                 partner_id = session_pairs.get(session_id)
                 if partner_id and partner_id in active_chats:
-                    # Логирование сообщения
+                    # Ограничение длины сообщения
+                    text = data["text"][:500]
                     chat_id = "-".join(sorted([session_id, partner_id]))
-                    log_chat_message(chat_id, session_id, data["text"][:500], websocket.client.host)
-                    await active_chats[partner_id].send_json({"type": "message", "from": "stranger", "text": data["text"][:500]})
-            elif data["type"] == "typing":
+                    log_chat_message(chat_id, session_id, text, websocket.client.host)
+                    try:
+                        await active_chats[partner_id].send_json({"type": "message", "from": "stranger", "text": text})
+                    except Exception as e:
+                        print(f"[WS SEND ERROR] {e}")
+            elif msg_type == "typing":
                 partner_id = session_pairs.get(session_id)
                 if partner_id and partner_id in active_chats:
-                    await active_chats[partner_id].send_json({"type": "typing"})
-            elif data["type"] == "leave":
+                    try:
+                        await active_chats[partner_id].send_json({"type": "typing"})
+                    except Exception as e:
+                        print(f"[WS SEND ERROR] {e}")
+            elif msg_type == "leave":
                 await handle_leave(session_id)
                 break
-            elif data["type"] == "new":
+            elif msg_type == "new":
                 await handle_leave(session_id)
                 # Новый поиск собеседника
                 if waiting_queue:
@@ -119,6 +134,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         online_sessions.discard(session_id)
         active_chats.pop(session_id, None)
 
+# --- Вспомогательные функции ---
 def get_partner(session_id):
     return session_pairs.get(session_id)
 
@@ -128,7 +144,10 @@ async def handle_leave(session_id):
         session_pairs.pop(partner_id, None)
         ws = active_chats.get(partner_id)
         if ws:
-            await ws.send_json({"type": "left"})
+            try:
+                await ws.send_json({"type": "left"})
+            except Exception as e:
+                print(f"[WS SEND ERROR] {e}")
     # Удалить из очереди, если был в ожидании
     try:
         waiting_queue.remove(session_id)
