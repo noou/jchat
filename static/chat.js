@@ -40,6 +40,7 @@ const showChat = () => {
     msgInput.value = '';
     clearMessages();
     setSendEnabled(false);
+    registerSession();
 };
 const addMsg = (text, from, time) => {
     const div = document.createElement('div');
@@ -69,7 +70,7 @@ const showTypingIndicator = () => {
         indicator = document.createElement('div');
         indicator.id = 'typing-indicator';
         indicator.className = 'typing-indicator';
-        indicator.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+        indicator.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span> собеседник печатает...';
         messagesDiv.appendChild(indicator);
         scrollMessages();
     }
@@ -79,7 +80,24 @@ const hideTypingIndicator = () => {
     if (indicator) indicator.remove();
 };
 const showNewPartnerBtn = () => {
-    document.getElementById('new-btn').style.display = '';
+    // Удаляем старую динамическую кнопку, если есть
+    let btn = document.getElementById('new-btn-dynamic');
+    if (btn) btn.remove();
+    // Создаём новую кнопку
+    btn = document.createElement('button');
+    btn.id = 'new-btn-dynamic';
+    btn.className = 'new-btn';
+    btn.textContent = 'новый собеседник';
+    btn.onclick = () => {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'new'}));
+        clearMessages();
+        showLoaderWithText('Поиск нового собеседника...');
+        setSendEnabled(false);
+    };
+    btn.style.display = 'block';
+    btn.style.margin = '24px auto 0 auto';
+    messagesDiv.appendChild(btn);
+    scrollMessages();
 };
 
 const getWsUrl = (sessionId) => {
@@ -205,17 +223,19 @@ if (closeBtn) {
     };
 }
 
-const setThemeToggleHandler = () => {
-    if (!themeToggle) return;
-    let isDark = document.body.classList.contains('dark-theme');
-    function setTheme(dark) {
-        isDark = dark;
-        document.body.classList.toggle('dark-theme', dark);
-        themeToggle.classList.toggle('active', dark);
-    }
-    themeToggle.onclick = () => setTheme(!isDark);
+// --- Тема (тёмная/светлая) с автосохранением ---
+function setTheme(dark) {
+    document.body.classList.toggle('dark', dark);
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+}
+function getSavedTheme() {
+    return localStorage.getItem('theme') === 'dark';
+}
+// При загрузке страницы применяем сохранённую тему
+setTheme(getSavedTheme());
+themeToggle.onclick = () => {
+    setTheme(!document.body.classList.contains('dark'));
 };
-setThemeToggleHandler();
 
 // Добавляем элемент Audio для уведомления
 const notifyAudio = new Audio('/static/media/notify.mp3');
