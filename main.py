@@ -71,8 +71,13 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             await websocket.send_json({"type": "matched", "partner": partner_id})
         else:
             # Поиск собеседника
-            if waiting_queue:
-                partner_id = waiting_queue.popleft()
+            partner_id = None
+            while waiting_queue:
+                candidate = waiting_queue.popleft()
+                if candidate != session_id:
+                    partner_id = candidate
+                    break
+            if partner_id:
                 session_pairs[session_id] = partner_id
                 session_pairs[partner_id] = session_id
                 active_chats[session_id] = websocket
@@ -117,8 +122,13 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             elif msg_type == "new":
                 await handle_leave(session_id)
                 # Новый поиск собеседника
-                if waiting_queue:
-                    partner_id = waiting_queue.popleft()
+                partner_id = None
+                while waiting_queue:
+                    candidate = waiting_queue.popleft()
+                    if candidate != session_id:
+                        partner_id = candidate
+                        break
+                if partner_id:
                     session_pairs[session_id] = partner_id
                     session_pairs[partner_id] = session_id
                     await websocket.send_json({"type": "matched", "partner": partner_id})

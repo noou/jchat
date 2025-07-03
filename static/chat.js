@@ -1,5 +1,5 @@
-const sessionId = localStorage.getItem('sessionId') || crypto.randomUUID();
-localStorage.setItem('sessionId', sessionId);
+const sessionId = sessionStorage.getItem('sessionId') || crypto.randomUUID();
+sessionStorage.setItem('sessionId', sessionId);
 let ws = null;
 let partnerId = null;
 let typingTimeout = null;
@@ -79,14 +79,17 @@ const hideTypingIndicator = () => {
     if (indicator) indicator.remove();
 };
 const showNewPartnerBtn = () => {
-    if (!document.getElementById('new-btn')) {
-        const wrap = document.createElement('div');
-        wrap.style.textAlign = 'center';
-        wrap.style.margin = '24px 0';
-        wrap.innerHTML = '<button id="new-btn" class="new-btn">Новый собеседник</button>';
-        messagesDiv.appendChild(wrap);
-        scrollMessages();
+    // Удаляем старую кнопку, если она есть
+    const oldBtn = document.getElementById('new-btn');
+    if (oldBtn && oldBtn.parentElement) {
+        oldBtn.parentElement.remove();
     }
+    const wrap = document.createElement('div');
+    wrap.style.textAlign = 'center';
+    wrap.style.margin = '24px 0';
+    wrap.innerHTML = '<button id="new-btn" class="new-btn">Новый собеседник</button>';
+    messagesDiv.appendChild(wrap);
+    scrollMessages();
 };
 
 const getWsUrl = (sessionId) => {
