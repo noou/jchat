@@ -9,6 +9,8 @@ import json
 from datetime import datetime, timedelta
 import os
 import asyncio
+from starlette.middleware.base import BaseHTTPMiddleware
+import logging
 
 app = FastAPI()
 app.add_middleware(
@@ -29,7 +31,7 @@ online_sessions: set = set()
 
 # --- Для минимизации памяти ---
 last_active = {}
-INACTIVITY_TIMEOUT = timedelta(minutes=10)
+INACTIVITY_TIMEOUT = timedelta(minutes=1)
 
 LOG_PATH = os.path.join(os.path.dirname(__file__), 'logs', 'chat_log.jsonl')
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
@@ -47,6 +49,25 @@ def log_chat_message(chat_id, from_id, text, ip):
             }, ensure_ascii=False) + "\n")
     except Exception as e:
         print(f"[LOGGING ERROR] {e}")
+
+class SuppressOnlineLogMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.url.path == "/online":
+            logger = logging.getLogger("uvicorn.access")
+            level = logger.level
+            logger.setLevel(logging.ERROR)
+            response = await call_next(request)
+            logger.setLevel(level)
+            return response
+        return await call_next(request)
+
+app.add_middleware(SuppressOnlineLogMiddleware)
+
+class OnlineFilter(logging.Filter):
+    def filter(self, record):
+        return "/online" not in record.getMessage()
+
+logging.getLogger("uvicorn.access").addFilter(OnlineFilter())
 
 @app.get("/")
 def root():

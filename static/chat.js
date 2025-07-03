@@ -79,17 +79,7 @@ const hideTypingIndicator = () => {
     if (indicator) indicator.remove();
 };
 const showNewPartnerBtn = () => {
-    // Удаляем старую кнопку, если она есть
-    const oldBtn = document.getElementById('new-btn');
-    if (oldBtn && oldBtn.parentElement) {
-        oldBtn.parentElement.remove();
-    }
-    const wrap = document.createElement('div');
-    wrap.style.textAlign = 'center';
-    wrap.style.margin = '24px 0';
-    wrap.innerHTML = '<button id="new-btn" class="new-btn">Новый собеседник</button>';
-    messagesDiv.appendChild(wrap);
-    scrollMessages();
+    document.getElementById('new-btn').style.display = '';
 };
 
 const getWsUrl = (sessionId) => {
@@ -139,11 +129,13 @@ const connectWS = () => {
     ws.onerror = err => {
         addSysMsg('Ошибка соединения. Попробуйте обновить страницу.');
         setSendEnabled(false);
+        showNewPartnerBtn();
     };
     ws.onclose = () => {
         addSysMsg('Соединение потеряно.');
         setSendEnabled(false);
         hideTypingIndicator();
+        showNewPartnerBtn();
     };
 };
 
@@ -185,12 +177,14 @@ messagesDiv.addEventListener('click', e => {
 });
 
 const updateOnline = () => {
-    fetch('/online').then(r=>r.json()).then(d=>{
-        onlineMain.textContent = 'онлайн: ' + d.online;
-        onlineChat.textContent = 'онлайн: ' + d.online;
-    });
+    fetch('/online')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('online-main').textContent = 'онлайн: ' + data.online;
+            document.getElementById('online-chat').textContent = 'онлайн: ' + data.online;
+        });
 };
-setInterval(updateOnline, 3000);
+setInterval(updateOnline, 10000);
 updateOnline();
 
 const registerSession = () => {
