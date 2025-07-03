@@ -49,6 +49,7 @@ const addMsg = (text, from, time) => {
     div.innerHTML = `<span class="msg-text">${text}</span><span class="msg-time">${msgTime}</span>`;
     messagesDiv.appendChild(div);
     scrollMessages();
+    showNotification('Новое сообщение', text);
 };
 const addSysMsg = text => {
     const div = document.createElement('div');
@@ -130,7 +131,6 @@ const connectWS = () => {
             addMsg(data.text, data.from === 'stranger' ? 'stranger' : 'me', formatTime(new Date()));
             hideTypingIndicator();
             notifyAudio.play();
-            showNotification('Новое сообщение', data.text);
         } else if (data.type === 'left') {
             addSysMsg('Собеседник покинул чат.');
             setSendEnabled(false);
@@ -293,8 +293,6 @@ function showNotification(title, body) {
         new Notification(title, { body });
     }
 }
-// --- Конец push-уведомлений ---
-
 // Запрашиваем разрешение на уведомления при загрузке страницы
 requestNotificationPermission();
 
