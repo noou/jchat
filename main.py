@@ -6,6 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List
 from collections import deque
 import asyncio
+import json
+from datetime import datetime
+import os
 
 app = FastAPI()
 app.add_middleware(
@@ -24,6 +27,19 @@ active_chats: Dict[str, WebSocket] = {}
 session_pairs: Dict[str, str] = {}  # session_id -> partner_id
 online_sessions: set = set()
 
+LOG_PATH = os.path.join(os.path.dirname(__file__), 'logs', 'chat_log.jsonl')
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+
+def log_chat_message(chat_id, from_id, text, ip):
+    with open(LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "chat_id": chat_id,
+            "from": from_id,
+            "text": text,
+            "timestamp": datetime.utcnow().isoformat(),
+            "ip": ip
+        }, ensure_ascii=False) + "\n")
+
 @app.get("/")
 def root():
     return FileResponse("static/index.html")
@@ -33,8 +49,8 @@ def get_online():
     return {"online": len(online_sessions)}
 
 @app.post("/register")
-def register(request: Request):
-    data = request.json()
+async def register(request: Request):
+    data = await request.json()
     session_id = data.get("session_id")
     if session_id:
         online_sessions.add(session_id)
@@ -72,6 +88,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             if data["type"] == "message":
                 partner_id = session_pairs.get(session_id)
                 if partner_id and partner_id in active_chats:
+                    # Логирование сообщения
+                    chat_id = "-".join(sorted([session_id, partner_id]))
+                    log_chat_message(chat_id, session_id, data["text"][:500], websocket.client.host)
                     await active_chats[partner_id].send_json({"type": "message", "from": "stranger", "text": data["text"][:500]})
             elif data["type"] == "leave":
                 await handle_leave(session_id)

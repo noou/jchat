@@ -15,11 +15,13 @@
     <div class="online" id="online-main">онлайн: ...</div>
 </div>
 <div id="chat-screen" class="screen" style="display:none;">
+    <div class="theme-switcher" id="theme-switcher">🌙</div>
     <div class="chat-box">
+        <button class="close-btn" id="close-btn" title="Завершить чат">✕</button>
         <div class="messages" id="messages"></div>
-        <div class="input-row">
-            <input type="text" id="msg-input" maxlength="500" placeholder="Введите сообщение...">
-            <button id="send-btn">отправить сообщение</button>
+        <div class="input-row chat-input-form">
+            <textarea id="msg-input" maxlength="500" placeholder="Введите сообщение..."></textarea>
+            <button id="send-btn">Отправить</button>
         </div>
         <div class="chat-actions">
             <button id="leave-btn">завершить чат</button>

@@ -53,14 +53,15 @@ button:active {
 .chat-box {
     background: #fff;
     border-radius: 8px;
-    padding: 20px;
+    padding: 1%;
     min-width: 540px;
     min-height: 420px;
+    font-size: 1.1em;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     box-sizing: border-box;
-    font-size: 1.1em;
+    position: relative;
 }
 .messages {
     flex: 1;
@@ -99,15 +100,61 @@ button:active {
     border: 1px solid #ccc;
 }
 .chat-actions {
+    display: none;
+}
+.chat-input-form {
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
+    align-items: flex-end;
+    background: #e8eef2;
+    border-radius: 16px;
+    padding: 16px 18px 16px 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 0;
+    gap: 0;
+}
+.chat-input-form textarea {
+    flex: 1;
+    min-height: 60px;
+    max-height: 120px;
+    resize: vertical;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 18px;
+    font-size: 1.1em;
+    background: #fafbfc;
+    color: #222;
+    outline: none;
+    margin-right: 12px;
+    box-sizing: border-box;
+    transition: box-shadow 0.2s;
+}
+.chat-input-form textarea:focus {
+    box-shadow: 0 0 0 2px #b3d4fc;
+}
+#send-btn {
+    margin: auto;
+}
+#send-btn:active, #send-btn:focus {
+    background: #444;
+}
+#send-btn:disabled {
+    background: #bbb;
+    color: #fff;
+    cursor: not-allowed;
 }
 @media (max-width: 900px) {
     .center-box, .chat-box {
         min-width: 95vw;
         padding: 10px 2vw;
         font-size: 1em;
+    }
+    .chat-input-form textarea {
+        font-size: 1em;
+        min-height: 48px;
+    }
+    #send-btn {
+        font-size: 1em;
+        padding: 8px 18px;
     }
 }
 @media (max-width: 600px) {
@@ -131,4 +178,140 @@ button:active {
         top: 10px;
         font-size: 14px;
     }
+    .chat-input-form {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 8px 4px;
+    }
+    #send-btn {
+        padding: 8px 12px;
+        margin-top: 6px;
+    }
+}
+.loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+.loader-circle {
+    border: 5px solid #e0e0e0;
+    border-top: 5px solid #4a6a85;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.close-btn {
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    font-size: 2em;
+    color: #888;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.2s;
+    margin: auto;
+    margin-right: 1%;
+}
+.close-btn:hover {
+    color: #d33;
+}
+.theme-switcher {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: #fff;
+    color: #222;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3em;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    cursor: pointer;
+    z-index: 10;
+    border: 1px solid #eee;
+    transition: background 0.2s, color 0.2s;
+}
+.theme-switcher:hover {
+    background: #f0f0f0;
+}
+/* Ночная тема */
+body.dark-theme {
+    background: #181c22;
+    color: #e0e0e0;
+}
+body.dark-theme .screen {
+    background: #23272f;
+}
+body.dark-theme .center-box, body.dark-theme .chat-box {
+    background: #23272f;
+    color: #e0e0e0;
+}
+body.dark-theme .messages {
+    background: #23272f;
+    border-color: #333;
+}
+body.dark-theme .chat-input-form {
+    background: #23272f;
+}
+body.dark-theme .chat-input-form textarea {
+    background: #181c22;
+    color: #e0e0e0;
+    border-color: #333;
+}
+body.dark-theme #send-btn {
+    background: #444;
+    color: #fff;
+}
+body.dark-theme #send-btn:active, body.dark-theme #send-btn:focus {
+    background: #666;
+}
+body.dark-theme #send-btn:disabled {
+    background: #222;
+    color: #888;
+}
+body.dark-theme .close-btn {
+    color: #aaa;
+}
+body.dark-theme .close-btn:hover {
+    color: #f55;
+}
+body.dark-theme .theme-switcher {
+    background: #23272f;
+    color: #e0e0e0;
+    border: 1px solid #333;
+}
+body.dark-theme .theme-switcher:hover {
+    background: #181c22;
+}
+.new-btn {
+    background: #222;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 16px;
+    padding: 12px 24px;
+    border: none;
+    margin: 0 auto;
+    box-shadow: none;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+.new-btn:active, .new-btn:focus {
+    background: #444;
+}
+body.dark-theme .new-btn {
+    background: #444;
+    color: #fff;
+}
+body.dark-theme .new-btn:active, body.dark-theme .new-btn:focus {
+    background: #666;
 } 

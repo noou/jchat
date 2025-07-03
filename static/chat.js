@@ -13,6 +13,7 @@ const msgInput = document.getElementById('msg-input');
 const messagesDiv = document.getElementById('messages');
 const onlineMain = document.getElementById('online-main');
 const onlineChat = document.getElementById('online-chat');
+const themeSwitcher = document.getElementById('theme-switcher');
 
 function setSendEnabled(enabled) {
     sendBtn.disabled = !enabled;
@@ -34,6 +35,8 @@ function showChat() {
     msgInput.value = '';
     messagesDiv.innerHTML = '';
     setSendEnabled(false);
+    setCloseBtnHandler();
+    setThemeSwitcherHandler();
 }
 function addMsg(text, from) {
     const div = document.createElement('div');
@@ -49,10 +52,17 @@ function addSysMsg(text) {
     messagesDiv.appendChild(div);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
+function showLoaderWithText(text) {
+    messagesDiv.innerHTML = `<div class="sys" style="margin-bottom:18px;">${text}</div><div class="loader"><div class="loader-circle"></div></div>`;
+}
+function hideLoader() {
+    const loader = messagesDiv.querySelector('.loader');
+    if (loader) loader.remove();
+}
 function connectWS() {
     ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
     ws.onopen = () => {
-        addSysMsg('Поиск собеседника...');
+        showLoaderWithText('Поиск собеседника...');
         setSendEnabled(false);
     };
     ws.onmessage = (e) => {
@@ -63,13 +73,14 @@ function connectWS() {
             addSysMsg('Собеседник найден!');
             setSendEnabled(true);
         } else if (data.type === 'waiting') {
-            addSysMsg('Ожидание собеседника...');
+            showLoaderWithText('Ожидание собеседника...');
             setSendEnabled(false);
         } else if (data.type === 'message') {
             addMsg(data.text, data.from === 'stranger' ? 'stranger' : 'me');
         } else if (data.type === 'left') {
             addSysMsg('Собеседник покинул чат.');
             setSendEnabled(false);
+            showNewPartnerBtn();
         }
     };
     ws.onclose = () => {
@@ -103,6 +114,16 @@ newBtn.onclick = () => {
     addSysMsg('Поиск нового собеседника...');
     setSendEnabled(false);
 };
+function showNewPartnerBtn() {
+    messagesDiv.innerHTML += '<div style="text-align:center;margin:24px 0;"><button id="new-btn" class="new-btn">Новый собеседник</button></div>';
+    const newBtn = document.getElementById('new-btn');
+    newBtn.onclick = () => {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'new'}));
+        messagesDiv.innerHTML = '';
+        showLoaderWithText('Поиск нового собеседника...');
+        setSendEnabled(false);
+    };
+}
 function updateOnline() {
     fetch('/online').then(r=>r.json()).then(d=>{
         onlineMain.textContent = 'онлайн: ' + d.online;
@@ -119,4 +140,29 @@ function registerSession() {
     });
 }
 registerSession();
+
+// --- Тема ---
+function setThemeSwitcherHandler() {
+    if (!themeSwitcher) return;
+    let isDark = document.body.classList.contains('dark-theme');
+    function setTheme(dark) {
+        isDark = dark;
+        document.body.classList.toggle('dark-theme', dark);
+        themeSwitcher.textContent = dark ? '☀️' : '🌙';
+    }
+    themeSwitcher.onclick = () => setTheme(!isDark);
+}
+// ---
+
+function setCloseBtnHandler() {
+    const closeBtn = document.getElementById('close-btn');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            if (ws && ws.readyState === 1) ws.send(JSON.stringify({type: 'leave'}));
+            ws.close();
+            showMain();
+        };
+    }
+}
+
 showMain(); 
