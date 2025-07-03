@@ -89,9 +89,14 @@ const showNewPartnerBtn = () => {
     }
 };
 
+const getWsUrl = (sessionId) => {
+    const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    return `${wsProtocol}://${location.host}/ws/${sessionId}`;
+};
+
 const connectWS = () => {
     if (ws && ws.readyState === 1) return;
-    ws = new WebSocket(`ws://${location.host}/ws/${sessionId}`);
+    ws = new WebSocket(getWsUrl(sessionId));
     ws.onopen = () => {
         showLoaderWithText('Поиск собеседника...');
         setSendEnabled(false);
