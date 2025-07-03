@@ -296,4 +296,11 @@ function showNotification(title, body) {
 // Запрашиваем разрешение на уведомления при загрузке страницы
 requestNotificationPermission();
 
-showMain(); 
+showMain();
+
+window.addEventListener('beforeunload', function () {
+    if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({type: 'leave'}));
+        ws.close();
+    }
+}); 
