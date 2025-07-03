@@ -111,17 +111,20 @@ const connectWS = () => {
             clearMessages();
             addSysMsg('Собеседник найден!');
             setSendEnabled(true);
+            matchAudio.play();
         } else if (data.type === 'waiting') {
             showLoaderWithText('Ожидание собеседника...');
             setSendEnabled(false);
         } else if (data.type === 'message') {
             addMsg(data.text, data.from === 'stranger' ? 'stranger' : 'me', formatTime(new Date()));
             hideTypingIndicator();
+            notifyAudio.play();
         } else if (data.type === 'left') {
             addSysMsg('Собеседник покинул чат.');
             setSendEnabled(false);
             showNewPartnerBtn();
             hideTypingIndicator();
+            leftAudio.play();
         } else if (data.type === 'typing') {
             showTypingIndicator();
             if (typingTimeout) clearTimeout(typingTimeout);
@@ -214,5 +217,14 @@ const setThemeToggleHandler = () => {
     themeToggle.onclick = () => setTheme(!isDark);
 };
 setThemeToggleHandler();
+
+// Добавляем элемент Audio для уведомления
+const notifyAudio = new Audio('/static/media/notify.mp3');
+
+// Добавляем элемент Audio для уведомления о найденном собеседнике
+const matchAudio = new Audio('/static/media/match.mp3');
+
+// Добавляем элемент Audio для уведомления о выходе собеседника
+const leftAudio = new Audio('/static/media/left.mp3');
 
 showMain(); 
